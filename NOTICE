@@ -1,0 +1,87 @@
+cls-studio
+Copyright 2026 The Cls-Studio Contributors
+
+Licensed under the Apache License, Version 2.0 (the "License").
+You may obtain a copy of the License in the LICENSE file at the root of
+this distribution, or at http://www.apache.org/licenses/LICENSE-2.0.
+
+================================================================================
+Upstream NOTICE attributions (Apache License 2.0 section 4(d))
+================================================================================
+
+Section 4(d) requires that we reproduce the contents of any NOTICE file
+shipped by an Apache-2.0 licensed work we redistribute.
+
+cls-studio is distributed as source only, so it redistributes no
+third-party code at all: dependencies are installed from PyPI and npm
+onto the user's own machine. The Apache-2.0 licensed components that a
+default install pulls in there are:
+
+  python-multipart, fasteners, opencv-python-headless
+
+Optional --with-openvino installs additionally pull these Apache-2.0
+packages from PyPI onto the user's machine:
+
+  openvino, nncf, openvino-telemetry, safetensors, ninja
+  (ninja is Apache-2.0 AND BSD-3-Clause; packaging, also pulled in, is
+   dual Apache-2.0 OR BSD-2-Clause and is taken under BSD-2-Clause)
+
+None of these projects publishes a NOTICE file upstream (re-verified
+2026-07-29 against each project's repository root — every name in both
+lists above). There is therefore nothing to reproduce here. If any
+upstream adds a NOTICE file in future, it will be incorporated at the
+next dependency refresh.
+
+For the complete list of third-party dependencies and their licenses, see
+THIRD_PARTY_NOTICES.md.
+
+================================================================================
+Copyleft pulled in at install time (not redistributed here)
+================================================================================
+
+opencv-python-headless bundles its own FFmpeg build inside the wheel that
+pip installs on the user's machine: an LGPL-2.1+ build in the Windows
+wheel, and a GPL build (--enable-gpl, x264/x265) in the macOS wheel.
+cls-studio redistributes neither -- pip fetches the wheel from PyPI
+directly -- so no copyleft obligation attaches to this project.
+
+  FFmpeg (via cv2)  LGPL-2.1+ (Windows wheel) / GPL (macOS wheel)
+                    https://github.com/FFmpeg/FFmpeg
+
+Anyone repackaging cls-studio into a binary distribution inherits those
+obligations. The macOS wheel is the sharp edge: cv2.abi3.so links libav*
+through @loader_path, so the GPL build cannot be stripped out.
+
+================================================================================
+NVIDIA libraries via PyTorch CUDA wheel (CUDA installs)
+================================================================================
+
+A CUDA install pip-installs the PyTorch CUDA wheel onto the user's own
+machine. That wheel transitively bundles the NVIDIA libraries pinned as
+nvidia-*-cu12 in apps/api/requirements.txt, under their respective
+redistributable licenses. THIRD_PARTY_NOTICES.md enumerates that pin set; the lockfile
+itself is authoritative, and cuSPARSELt in particular carries its own
+NVIDIA license terms. cls-studio does not download or package these
+libraries from NVIDIA directly, and does not redistribute them; they
+arrive from the PyTorch wheel that PyTorch's maintainers publish under the
+permissions granted by NVIDIA.
+
+On Linux these arrive as separate nvidia-*-cu12 wheels; on Windows the
+equivalent DLLs are bundled inside the torch wheel itself (torch/lib/).
+
+================================================================================
+Trademarks
+================================================================================
+
+All trademarks, service marks, trade names, product names, and logos appearing
+in this software are the property of their respective owners. In particular:
+
+  PyTorch              — trademark of The Linux Foundation.
+  NVIDIA, CUDA, cuDNN  — trademarks of NVIDIA Corporation.
+  Microsoft, Windows   — trademarks of Microsoft Corporation.
+  Intel, OpenVINO      — trademarks of Intel Corporation.
+  Apple, macOS         — trademarks of Apple Inc.
+  DINOv2               — research model from Meta Platforms, Inc.
+
+The use of these names is for identification and informational purposes only
+and does not imply endorsement.
