@@ -33,7 +33,7 @@ httpx==0.28.*
 torch==2.13.*
 numpy==2.4.*
 pillow>=10.2.0,<13
-opencv-python-headless>=4.9.0,<5
+opencv-python-headless>=5.0.0.93,<6
 scikit-learn==1.8.*
 scipy==1.17.*
 
