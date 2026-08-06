@@ -42,7 +42,7 @@ scipy==1.17.*
 # ── Large image tiling (DeepZoom pyramid generation) ────────────
 
 # ── Chunked mask storage for large images ───────────────────────
-zarr>=2.18.0,<3
+zarr>=3.3.0,<4
 
 # DINOv2 is fetched at runtime via torch.hub (weights Apache-2.0);
 # no extra Python dependency is needed for it beyond torch itself.
