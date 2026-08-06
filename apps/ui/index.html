@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="./favicon.ico" />
+    <title>Cls-Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root">
+      <!-- Pre-mount placeholder: replaced the moment React renders. Keeps the
+           first paint from being a bare white page while the JS bundle loads.
+           SMIL-animated spinner: no CSS/JS dependency this early. -->
+      <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;font-family:Inter,system-ui,sans-serif;font-size:14px;color:#8b94a5">
+        <svg width="18" height="18" viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-dasharray="90 60"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.9s" repeatCount="indefinite"/></circle></svg>
+        <span>Cls-Studio loading…</span>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

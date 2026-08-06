@@ -1,0 +1,20 @@
+# Documented exceptions for scripts/ci/check_dep_licenses.py — each entry
+# needs a reason and a verification pointer. Review at the half-yearly cron.
+
+# NVIDIA CUDA runtime wheel with no PyPI metadata; license text is
+# bundled inside the wheel and propagated via the torch wheel notices
+# collected by scripts/build_installer.py.
+nvidia-nccl-cu12
+
+# Same NVIDIA CUDA runtime wheel family, pulled in by the torch 2.13 bump
+# (2026-08-03). Same EULA and the same install-time-only reasoning as
+# nvidia-nccl-cu12 above: platform wheels resolved from PyPI at install
+# time, never redistributed in this tree.
+# LICENSE: NVIDIA CUDA Toolkit EULA, confirmed at
+# https://docs.nvidia.com/cuda/eula/index.html
+cuda-toolkit
+nvidia-cuda-runtime
+nvidia-cudnn-cu13
+nvidia-nccl-cu13
+nvidia-nvjitlink
+nvidia-nvshmem-cu13

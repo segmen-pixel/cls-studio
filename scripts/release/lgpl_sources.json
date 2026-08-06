@@ -1,0 +1,49 @@
+{
+ "_comment": [
+  "Copyleft-source manifest for binary releases (LGPL-2.x / MPL).",
+  "Each entry maps a DLL name pattern (glob, matched against the",
+  "release_manifest.json of a built installer staging) to the exact",
+  "upstream source archive that corresponds to the shipped binary.",
+  "",
+  "Before every binary release: fill version / source_url / sha256 for",
+  "every entry that matches a shipped DLL, then run",
+  "scripts/release/collect_lgpl_sources.py -- it fails closed on any",
+  "matched DLL whose source pin is incomplete.",
+  "",
+  "The pin has to identify the build that actually ships. NOTICE already",
+  "tells the user they can obtain the sources; pointing only at the",
+  "upstream project does not identify which version that is, which is",
+  "what LGPL-2.1 section 6 asks for.",
+  "",
+  "cls-studio uses no video I/O at all, but opencv-python-headless bundles",
+  "FFmpeg regardless. The Windows wheel carries OpenCV's own LGPL-2.1+",
+  "build (verified 2026-07-31: no --enable-gpl / libx264 / libx265). The",
+  "macOS wheel carries a GPL build instead, which is why no macOS bundle",
+  "is distributed -- see _assert_no_gpl_binaries() in build_installer.py."
+ ],
+ "components": [
+  {
+   "component": "ffmpeg",
+   "dll_patterns": [
+    "opencv_videoio_ffmpeg*.dll"
+   ],
+   "license": "LGPL-2.1+",
+   "upstream": "https://github.com/FFmpeg/FFmpeg",
+   "shipped_by": "opencv-python-headless (Windows wheel)",
+   "version": "4.4.5",
+   "source_url": "https://ffmpeg.org/releases/ffmpeg-4.4.5.tar.xz",
+   "sha256": "f9514e0d3515aee5a271283df71636e1d1ff7274b15853bcd84e144be416ab07",
+   "patches": [],
+   "provenance": [
+    "opencv 4.11.0 pins 3rdparty/ffmpeg/ffmpeg.cmake to opencv_3rdparty commit",
+    "d63d7c154c57242bf2283be61166be2bd30ec47e (branch ffmpeg/4.x_20241226),",
+    "whose ffmpeg/download_src.sh builds the shipped DLL from FFmpeg tag n4.4.5.",
+    "Cross-checked against ffmpeg_version.cmake in the same commit:",
+    "libavcodec 58.134.100 / libavformat 58.76.100 / libavutil 56.70.100 /",
+    "libswscale 5.9.100, which are the 4.4 series.",
+    "The same DLL statically links openh264 (BSD-2) and libvpx (BSD-3);",
+    "neither is copyleft, so neither carries a source-offer obligation."
+   ]
+  }
+ ]
+}
