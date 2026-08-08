@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>cls-studio — operator</title>
+<style>
+  :root { --bg:#0e1116; --panel:#171b22; --line:#262c36; --fg:#e6e9ef; --muted:#8b94a3; --accent:#4f9dff; --ok:#2ecc71; --ng:#ff5252; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui,Segoe UI,sans-serif; }
+  header { display:flex; align-items:center; gap:16px; padding:12px 20px; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:5; }
+  header h1 { font-size:17px; margin:0; letter-spacing:.5px; }
+  header .badge { font-size:11px; color:var(--muted); border:1px solid var(--line); border-radius:10px; padding:1px 8px; }
+  main { max-width:1100px; margin:0 auto; padding:20px; display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; min-width:0; }
+  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin:0 0 12px; }
+  .full { grid-column:1 / -1; }
+  select, input[type=text], button { font:inherit; color:var(--fg); background:#0f1319; border:1px solid var(--line); border-radius:7px; padding:7px 10px; }
+  button { cursor:pointer; background:#1d2530; transition:.15s; }
+  button:hover { border-color:var(--accent); }
+  button.primary { background:var(--accent); color:#04101f; border-color:var(--accent); font-weight:600; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .drop { border:1.5px dashed var(--line); border-radius:9px; padding:22px; text-align:center; color:var(--muted); transition:.15s; cursor:pointer; }
+  .drop.hot { border-color:var(--accent); color:var(--fg); background:#10151d; }
+  .stat { display:flex; gap:18px; margin-top:10px; }
+  .stat div { text-align:center; }
+  .stat b { display:block; font-size:22px; font-variant-numeric:tabular-nums; }
+  .stat span { font-size:11px; color:var(--muted); }
+  .verdict { font-size:26px; font-weight:700; letter-spacing:1px; }
+  .verdict.ok { color:var(--ok); } .verdict.ng { color:var(--ng); }
+  img.heat { width:100%; border-radius:8px; border:1px solid var(--line); margin-top:10px; display:block; }
+  .muted { color:var(--muted); font-size:12px; }
+  #log { grid-column:1/-1; font:12px ui-monospace,monospace; color:var(--muted); white-space:pre-wrap; max-height:120px; overflow:auto; border-top:1px solid var(--line); padding-top:8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>cls-studio</h1><span class="badge" id="ver">operator</span>
+  <div class="row" style="margin-left:auto">
+    <select id="project"></select>
+    <input id="newname" type="text" placeholder="new project name" size="14" />
+    <button id="create">+ create</button>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>1 · Teach — normal (OK) surfaces</h2>
+    <div class="drop" id="teach">Drop OK images here, or click to choose (multiple)</div>
+    <input id="teachInput" type="file" accept="image/*" multiple hidden />
+    <div class="stat">
+      <div><b id="nNormal">0</b><span>normal patches</span></div>
+      <div><b id="nCrit">0</b><span>critical</span></div>
+      <div><b id="nNeg">0</b><span>negative</span></div>
+      <div><b id="dim">–</b><span>dim</span></div>
+    </div>
+    <p class="muted" id="teachMsg">Select a project to begin.</p>
+  </section>
+
+  <section class="card">
+    <h2>2 · Inspect — score one image</h2>
+    <div class="drop" id="inspect">Drop a test image here, or click to choose</div>
+    <input id="inspectInput" type="file" accept="image/*" hidden />
+    <div class="row" style="margin-top:10px">
+      <span class="verdict" id="verdict">—</span>
+      <div class="stat" style="margin:0 0 0 auto">
+        <div><b id="sMax">–</b><span>max</span></div>
+        <div><b id="sMean">–</b><span>mean</span></div>
+        <div><b id="sP99">–</b><span>p99</span></div>
+      </div>
+    </div>
+    <img class="heat" id="heat" alt="" hidden />
+    <p class="muted" id="inspectMsg"></p>
+  </section>
+
+  <div id="log"></div>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const API = "/api/v1";
+let active = null;           // active project id
+let okBaseline = null;       // rolling max of OK scores, to set an NG threshold
+function log(m){ const el=$("#log"); el.textContent = new Date().toLocaleTimeString()+"  "+m+"\n"+el.textContent; }
+
+async function jget(u){ const r=await fetch(API+u); if(!r.ok) throw new Error(u+" -> "+r.status); return r.json(); }
+async function jpost(u,body){ const r=await fetch(API+u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}); if(!r.ok) throw new Error(u+" -> "+r.status); return r.json(); }
+async function upload(u,file,field="image"){ const fd=new FormData(); fd.append(field,file,file.name); const r=await fetch(API+u,{method:"POST",body:fd}); if(!r.ok){ throw new Error(u+" -> "+r.status+" "+(await r.text()).slice(0,120)); } return r.json(); }
+
+function renderBank(b){ $("#nNormal").textContent=b.normal; $("#nCrit").textContent=b.critical; $("#nNeg").textContent=b.negative; $("#dim").textContent=b.dim; }
+
+async function loadProjects(sel){
+  const list = await jget("/projects");
+  const s=$("#project"); s.innerHTML="";
+  for(const p of list){ const o=document.createElement("option"); o.value=p.id; o.textContent=p.name+" · "+p.id.slice(0,8); s.appendChild(o); }
+  if(list.length){ s.value = sel || list[0].id; await selectProject(s.value); }
+  else { $("#teachMsg").textContent="No projects yet — create one above."; }
+}
+
+async function selectProject(id){
+  const res = await jpost("/bank/select",{project_id:id});
+  active = id; okBaseline = null;
+  renderBank(res.bank);
+  $("#teachMsg").textContent = "Active. device="+res.device+". Teach OK surfaces, then inspect.";
+  log("selected "+id.slice(0,8)+"  device="+res.device);
+}
+
+async function teachFiles(files){
+  if(!active){ alert("Select a project first"); return; }
+  $("#teachMsg").textContent = "Teaching "+files.length+" image(s)… (first one loads DINOv2, ~a few s)";
+  let last=null;
+  for(const f of files){
+    try{ const r=await upload("/bank/append/normal",f); last=r.bank; renderBank(r.bank); log("append "+f.name+" (+"+r.appended_patches+" patches)"); }
+    catch(e){ log("append FAILED "+f.name+": "+e.message); }
+  }
+  if(last) $("#teachMsg").textContent="Taught. Normal bank = "+last.normal+" patches. Ready to inspect.";
+}
+
+async function inspectFile(f){
+  if(!active){ alert("Select a project first"); return; }
+  $("#inspectMsg").textContent="Scoring "+f.name+"…"; $("#verdict").textContent="…";
+  try{
+    const r = await upload("/score?k=5",f);
+    $("#sMax").textContent=r.max_score.toFixed(2); $("#sMean").textContent=r.mean_score.toFixed(2); $("#sP99").textContent=r.p99_score.toFixed(2);
+    $("#heat").src="data:image/png;base64,"+r.heatmap_png_base64; $("#heat").hidden=false;
+    // Heuristic verdict: first few OK scores set a baseline; >1.5x baseline max => NG.
+    if(okBaseline===null) okBaseline = r.max_score;
+    const thr = okBaseline*1.5;
+    const ng = r.max_score > thr;
+    const v=$("#verdict"); v.textContent = ng?"NG":"OK"; v.className="verdict "+(ng?"ng":"ok");
+    $("#inspectMsg").textContent = "max="+r.max_score.toFixed(2)+"  (baseline≈"+okBaseline.toFixed(2)+", thr="+thr.toFixed(2)+")  ·  "+Math.round(r.timings.total_server_ms)+" ms";
+    log("score "+f.name+"  max="+r.max_score.toFixed(2)+"  -> "+(ng?"NG":"OK"));
+  }catch(e){ $("#inspectMsg").textContent=e.message; log("score FAILED: "+e.message); }
+}
+
+// wiring
+function dropZone(zoneSel, inputSel, handler, multiple){
+  const z=$(zoneSel), i=$(inputSel);
+  z.onclick=()=>i.click();
+  i.onchange=()=>{ if(i.files.length) handler(multiple?[...i.files]:i.files[0]); i.value=""; };
+  ["dragover","dragenter"].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.add("hot");}));
+  ["dragleave","drop"].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.remove("hot");}));
+  z.addEventListener("drop",e=>{ const fs=[...e.dataTransfer.files]; if(fs.length) handler(multiple?fs:fs[0]); });
+}
+dropZone("#teach","#teachInput",teachFiles,true);
+dropZone("#inspect","#inspectInput",inspectFile,false);
+$("#project").onchange=e=>selectProject(e.target.value);
+$("#create").onclick=async()=>{ const n=$("#newname").value.trim()||"project"; const p=await jpost("/projects",{name:n}); $("#newname").value=""; await loadProjects(p.id); log("created "+n); };
+
+fetch("/version").then(r=>r.json()).then(v=>$("#ver").textContent="operator · v"+v.version).catch(()=>{});
+loadProjects().catch(e=>log("init error: "+e.message));
+</script>
+</body>
+</html>
