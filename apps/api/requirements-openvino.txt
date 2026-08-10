@@ -12,7 +12,7 @@ networkx==3.4.2
     # via nncf
 ninja==1.13.0
     # via nncf
-nncf==3.2.0
+nncf==3.3.0
     # via -r requirements-openvino.in
 numpy==2.4.6
     # via
@@ -20,7 +20,7 @@ numpy==2.4.6
     #   openvino
     #   scikit-learn
     #   scipy
-openvino==2026.2.1
+openvino==2026.3.0
     # via -r requirements-openvino.in
 openvino-telemetry==2025.2.0
     # via
@@ -42,11 +42,7 @@ safetensors==0.8.0
     # via nncf
 scikit-learn==1.9.0
     # via nncf
-scipy==1.17.1 ; python_full_version < '3.12'
-    # via
-    #   nncf
-    #   scikit-learn
-scipy==1.18.0 ; python_full_version >= '3.12'
+scipy==1.18.0
     # via
     #   nncf
     #   scikit-learn

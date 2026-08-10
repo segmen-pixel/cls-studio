@@ -21,5 +21,5 @@
 #   nncf     — Apache-2.0 (used for INT8 post-training quantization)
 #     https://github.com/openvinotoolkit/nncf/blob/develop/LICENSE
 
-openvino>=2026.2,<2027
-nncf>=3.2,<4
+openvino>=2026.3.0,<2027
+nncf>=3.3.0,<4
