@@ -1,0 +1,67 @@
+# api: human-edited dependency source.
+# Lockfile (`requirements.txt`) is auto-generated from this file by `uv pip compile`.
+#
+# When adding/upgrading a dependency:
+#   1. Edit this file (loose ranges OK for utilities; pin ML/server core).
+#   2. Run: uv pip compile requirements.in -o requirements.txt --python-version 3.11 --universal
+#   3. Verify the new license is OSS-compatible (Apache-2.0 / MIT / BSD / LGPL).
+#   4. Commit BOTH files together with a license-confirmation trail in the body:
+#        LICENSE: <pkg> <version> <SPDX-id> confirmed at <URL>
+#
+# ML / server-core packages are pinned to the version family currently
+# validated for the cls-studio runtime on Python 3.11. Bumping a major
+# version is a deliberate compatibility-test event — re-run pytest + a
+# scoring smoke run before relaxing these pins.
+#
+# NOTE: the torch-family pins here may skew from requirements.in, and the
+# reason is the CUDA index, not a preference: this variant is installed on
+# Windows from https://download.pytorch.org/whl/cu130, and only the torch
+# versions that index actually builds are reachable here.
+#
+# This set was on cu128 until 2026-08-17. PyTorch stopped building cu128
+# wheels at torch 2.11.0, which stranded a known-vulnerable torch
+# (PYSEC-2025-194) and, through torch 2.11's own setuptools<82 requirement,
+# a vulnerable setuptools with it. cu130 ships 2.13.0 and covers the same
+# architectures cu128 did (sm_75 Turing through sm_120 Blackwell, verified
+# with torch.cuda.get_arch_list()). The cost is CUDA 13.x's driver floor:
+# >= 580. Older GPUs keep the separate cu124 path in install_windows.bat.
+#
+# Before changing a pin here, check what the index actually has:
+#   https://download.pytorch.org/whl/cu130/torch/
+#
+# See CONTRIBUTING.md ("Dependency policy") for the full flow.
+
+# ── Core server (pinned to validated minor families) ────────────
+fastapi==0.135.*
+uvicorn[standard]==0.42.*
+sqlmodel==0.0.*
+pydantic==2.12.*
+python-multipart==0.0.*
+httpx==0.28.*
+
+# ── ML / inference (pinned to validated major.minor) ────────────
+# torch CUDA suffix (`+cu130`) is environment-specific and intentionally
+# absent here — the lockfile records canonical PyPI versions
+# (`torch==2.13.0`) and CI installs CPU wheels via --extra-index-url.
+torch==2.13.*
+numpy==2.4.*
+pillow>=10.2.0,<13
+opencv-python-headless>=4.9.0,<5
+scikit-learn==1.8.*
+scipy==1.17.*
+
+# ── Large image tiling (DeepZoom pyramid generation) ────────────
+
+# ── Chunked mask storage for large images ───────────────────────
+zarr>=2.18.0,<3
+
+# DINOv2 is fetched at runtime via torch.hub (weights Apache-2.0);
+# no extra Python dependency is needed for it beyond torch itself.
+
+# ── OpenVINO export (Intel edge) is opt-in: ~300MB+ of wheels.
+# Installed by `install_windows.bat --with-openvino` from
+# `requirements-openvino.in` rather than bundled here.
+
+# ── Config loading (.env files) ─────────────────────────────────
+python-dotenv>=1.0.0,<2
+

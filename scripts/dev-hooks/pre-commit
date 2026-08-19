@@ -1,0 +1,60 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+# Pre-commit hook — blocks staged changes that re-introduce
+# non-commercial-licensed vendor references into the OSS distribution.
+#
+# The hook reads its blocked prefixes from `scripts/nc-vendor-patterns.txt`
+# (one pattern per line, `#` comments allowed). The file is not part of this
+# repo — write your own list of vendors you must not depend on, or skip the
+# hook. CI performs the same check from the NC_VENDOR_PATTERNS repository
+# variable.
+#
+# Enable once per clone:
+#   git config core.hooksPath scripts/dev-hooks
+
+set -eu
+
+# Locate the pattern file relative to the repo root. The last two candidates
+# are legacy in-tree locations kept for older clones.
+PATTERN_FILE=""
+for candidate in "scripts/nc-vendor-patterns.txt" "cls-studio/.github/nc-vendor-patterns.txt" ".github/nc-vendor-patterns.txt"; do
+  if [ -f "$candidate" ]; then
+    PATTERN_FILE="$candidate"
+    break
+  fi
+done
+if [ -z "$PATTERN_FILE" ]; then
+  printf '\033[33m⚠️  pre-commit: nc-vendor-patterns.txt not found, skipping NC vendor check\033[0m\n'
+  exit 0
+fi
+
+PATTERN=$(grep -vE '^\s*(#|$)' "$PATTERN_FILE" | paste -sd '|' -)
+if [ -z "$PATTERN" ]; then
+  exit 0
+fi
+
+# Get list of staged files (added/copied/modified), restrict to text formats.
+# Exclude the audit infrastructure itself (pattern file and this hook).
+FILES=$(git diff --cached --name-only --diff-filter=ACM \
+        | grep -E '\.(py|ts|tsx|md|ya?ml|json|toml|sh)$' \
+        | grep -vE '(^|/)(license-check\.yml|pre-commit|nc-vendor-patterns\.txt)$' \
+        || true)
+
+if [ -z "$FILES" ]; then
+  exit 0
+fi
+
+# Search staged content (not working tree) for blocked vendor patterns.
+HITS=$(echo "$FILES" | xargs -d '\n' git diff --cached -- 2>/dev/null \
+       | grep -nE "^\+.*($PATTERN)" || true)
+
+if [ -n "$HITS" ]; then
+  printf '\033[31m❌ Non-commercial vendor reference in staged changes:\033[0m\n'
+  echo "$HITS" | head -20
+  printf '\n'
+  printf 'Apache-2.0 OSS cannot bundle non-commercial-licensed weights or code.\n'
+  printf 'Remove the reference and re-stage.\n'
+  exit 1
+fi
+
+exit 0

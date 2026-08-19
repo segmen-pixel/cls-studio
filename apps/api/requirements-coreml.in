@@ -1,0 +1,22 @@
+# api: optional Core ML export dependencies.
+# Installed only when the operator opts in:
+#   scripts/macos/install_macos.sh --with-coreml
+# or manually: `pip install -r requirements-coreml.txt` (the lockfile compiled
+# from this manifest; regenerate with
+# `uv pip compile requirements-coreml.in -o requirements-coreml.txt --python-version 3.11 --universal`).
+#
+# macOS only, and deliberately not a platform marker in requirements.in.
+# coremltools publishes wheels for macOS and manylinux and none for Windows,
+# so on Windows pip falls back to the sdist and builds a pure-Python package
+# with the C++ extensions missing. That install imports, converts, and then
+# fails at the two things that matter: mlprogram serialisation needs
+# BlobWriter from libmilstoragepython, and predict() needs libcoremlpython.
+# Measured on this project's sibling on 2026-08-19 -- a half-working
+# coremltools on PATH is worse than none, because the export looks available
+# and produces an artifact nobody can check against the bank.
+#
+# The upper bound tracks what coremltools declares it has been tested against
+# (_TORCH_MAX_VERSION), not what happens to import. Conversion runs the torch
+# frontend, so a torch far ahead of that is exactly where silent breakage
+# lives.
+coremltools>=9.0

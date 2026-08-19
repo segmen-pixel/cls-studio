@@ -1,0 +1,21 @@
+*.sh   text eol=lf
+scripts/dev-hooks/* text eol=lf
+# -text, NOT `text eol=crlf`. `eol` is a CHECKOUT filter: it makes a clone
+# right and leaves every export wrong, because `git archive` -- which is what
+# GitHub's "Source code (zip)" on a release is -- writes the blob verbatim.
+# Users install from that zip, and cmd.exe seeks `goto` labels by byte offset:
+# on an LF-only batch file it lands mid-line, so a `set` is skipped and the
+# next line runs with an empty variable. Measured on a Surface Book 3,
+# 2026-08-18: the SAME install_windows.bat failed at the venv step as LF and
+# completed as CRLF, line endings the only difference. Storing CRLF in the
+# blob is what makes clone, archive and zip all agree.
+# test_windows_scripts_are_crlf.py pins this.
+*.bat  -text
+*.ps1  -text
+# Consumed inside the Linux images built by docker-compose.yml, so they
+# must stay LF even when checked out with core.autocrlf=true.
+Dockerfile text eol=lf
+*.conf text eol=lf
+*.png  binary
+*.jpg  binary
+*.ico  binary
