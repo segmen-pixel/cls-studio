@@ -32,10 +32,10 @@
 # See CONTRIBUTING.md ("Dependency policy") for the full flow.
 
 # ── Core server (pinned to validated minor families) ────────────
-fastapi==0.135.*
-uvicorn[standard]==0.42.*
+fastapi==0.141.*
+uvicorn[standard]==0.53.*
 sqlmodel==0.0.*
-pydantic==2.12.*
+pydantic==2.13.*
 python-multipart==0.0.*
 httpx==0.28.*
 
@@ -43,12 +43,12 @@ httpx==0.28.*
 # torch CUDA suffix (`+cu130`) is environment-specific and intentionally
 # absent here — the lockfile records canonical PyPI versions
 # (`torch==2.13.0`) and CI installs CPU wheels via --extra-index-url.
-torch==2.13.*
+torch==2.14.*
 numpy==2.4.*
 pillow>=10.2.0,<13
 opencv-python-headless>=4.9.0,<5
-scikit-learn==1.8.*
-scipy==1.17.*
+scikit-learn==1.9.*
+scipy==1.18.*
 
 # ── Large image tiling (DeepZoom pyramid generation) ────────────
 
@@ -63,5 +63,5 @@ zarr>=2.18.0,<3
 # `requirements-openvino.in` rather than bundled here.
 
 # ── Config loading (.env files) ─────────────────────────────────
-python-dotenv>=1.0.0,<2
+python-dotenv>=1.2.3,<2
 
