@@ -1,0 +1,176 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── TypeScript type check ──────────────────────────────────────
+  typecheck:
+    name: TypeScript type check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/ui/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  # ── ESLint ─────────────────────────────────────────────────────
+  eslint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/ui/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+
+  # ── UI production build ────────────────────────────────────────
+  ui-build:
+    name: UI build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/ui/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  # ── Ruff (Python lint) ────────────────────────────────────────
+  ruff:
+    name: Ruff lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff
+      # Same target as the Ruff step in scripts/test.sh — settings come from
+      # [tool.ruff] in pyproject.toml.
+      - run: ruff check .
+
+  # ── Python import check ────────────────────────────────────────
+  python-imports:
+    name: Python import check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: apps/api/requirements.txt
+      - name: Install pinned requirements (lockfile)
+        # PyTorch CPU wheels live on download.pytorch.org; --extra-index-url
+        # lets pip find `torch==2.6.0` for Linux even if PyPI lacks the wheel.
+        run: |
+          pip install -r apps/api/requirements.txt \
+            --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install -e packages/clscore
+      - name: Verify key imports
+        run: |
+          python -c "
+          from apps.api.app.core.config import APP_VERSION
+          print(f'config.APP_VERSION = {APP_VERSION}')
+          "
+          python -c "
+          import clscore.bank, clscore.scoring, clscore.io
+          print('clscore core modules import OK')
+          "
+
+  pytest:
+    name: Pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: apps/api/requirements.txt
+      - name: Install pinned requirements (lockfile + dev)
+        run: |
+          pip install -r apps/api/requirements.txt \
+            -r apps/api/requirements-dev.txt \
+            --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install -e packages/clscore
+      - name: Run pytest
+        run: |
+          DIRS=""
+          [ -d tests ] && DIRS="$DIRS tests/"
+          [ -d apps/api/tests ] && DIRS="$DIRS apps/api/tests/"
+          [ -d packages/clscore/tests ] && DIRS="$DIRS packages/clscore/tests/"
+          if [ -n "$DIRS" ]; then
+            python -m pytest $DIRS -v --tb=short
+          else
+            echo "No test directories found — skipping"
+          fi
+
+  # ── pip-audit (CVE scan against pinned lockfiles) ─────────────
+  pip-audit:
+    name: pip-audit (CVE scan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Audit api lockfile
+        run: |
+          pip-audit -r apps/api/requirements.txt \
+            --vulnerability-service osv \
+            --strict
+      - name: Audit api dev lockfile (informational, non-blocking)
+        # Dev/test deps don't ship to users; report but don't fail the build.
+        continue-on-error: true
+        run: |
+          pip-audit -r apps/api/requirements-dev.txt \
+            --vulnerability-service osv
+      - name: Audit cu130 lockfile (Windows + CUDA install path)
+        # This lockfile SHIPS: install_windows.bat installs it on any machine
+        # with a CUDA GPU, so a CVE here reaches users exactly the way one in
+        # requirements.txt does. It went unaudited until 2026-08-17, and on that
+        # day it held every advisory the repository had -- 49 of them, in pillow
+        # (image decode), python-multipart (upload parsing), starlette
+        # (StaticFiles), idna, setuptools and torch. Blocking, like the runtime
+        # lockfile, for the same reason: both ship.
+        run: |
+          pip-audit -r apps/api/requirements-cu130.txt \
+            --vulnerability-service osv \
+            --strict
+      - name: Audit openvino lockfile (Intel edge export path)
+        # Also shipped, by install_windows.bat --with-openvino. Clean today; the
+        # point of the gate is that it stays that way without anyone noticing.
+        run: |
+          pip-audit -r apps/api/requirements-openvino.txt \
+            --vulnerability-service osv \
+            --strict

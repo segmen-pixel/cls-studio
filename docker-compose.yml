@@ -1,0 +1,43 @@
+# cls-studio has no built-in authentication. By default this compose
+# file publishes every port on 127.0.0.1 only, so LAN/WAN traffic
+# cannot reach the containers. Exposing externally REQUIRES a
+# reverse proxy with TLS + auth — see SECURITY.md.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    volumes:
+      - ./:/app
+      # User data lives on a named volume OUTSIDE the source mount: the
+      # startup guard rejects a projects dir inside the repo tree.
+      - cls-studio-data:/data
+    ports:
+      - "127.0.0.1:8791:8000"
+    environment:
+      - CLS_PROJECTS_DIR=/data/projects
+      - CLS_DB_PATH=/data/app.db
+      - CLS_MODELS_DIR=/data/models
+      # DINOv2 is fetched through torch.hub, which caches under TORCH_HOME.
+      # Point it at the named volume too, or every rebuilt container
+      # re-downloads the weights.
+      - TORCH_HOME=/data/torch
+      # CLS_HOST is set to 0.0.0.0 in apps/api/Dockerfile so uvicorn is
+      # reachable from the UI container; the loopback port mapping above is
+      # what keeps the API off the network. Do not widen it.
+      #
+      # Optional, unset here on purpose:
+      #   CLS_API_TOKEN     shared secret required on /api/v1/* calls
+      #   CLS_TORCH_DEVICE  auto (default) / cpu / cuda:N
+      # See .env.example and docs/deployment.md for the full list.
+  ui:
+    build:
+      context: .
+      dockerfile: apps/ui/Dockerfile
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      - api
+
+volumes:
+  cls-studio-data:

@@ -1,0 +1,8 @@
+{
+  "name": "cls-studio",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "api",
+  "workspaceFolder": "/app",
+  "forwardPorts": [8000, 8001, 5173],
+  "postCreateCommand": "pip install -r apps/api/requirements.txt"
+}

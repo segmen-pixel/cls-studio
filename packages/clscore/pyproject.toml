@@ -1,0 +1,71 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "clscore"
+version = "0.2.0"
+description = "Cls-Studio inference core — memory bank, scoring, backends"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [{name = "The Cls-Studio Contributors"}]
+keywords = ["classification", "industrial-inspection", "memory-bank"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+dependencies = [
+    "torch>=2.2",
+    "numpy>=1.26,<3",
+    "pillow>=10.2",
+    "scikit-learn>=1.4",
+    "scipy>=1.12",
+    "opencv-python-headless>=4.9",
+    # LICENSE: Unlicense (public domain) confirmed at https://github.com/tox-dev/filelock/blob/main/LICENSE
+    "filelock>=3",
+]
+
+[project.urls]
+Homepage = "https://github.com/segmen-pixel/cls-studio"
+Repository = "https://github.com/segmen-pixel/cls-studio"
+Issues = "https://github.com/segmen-pixel/cls-studio/issues"
+
+[project.optional-dependencies]
+# timm-built BG-aware encoders (bg_backbone). Optional because the default
+# DINOv2 feature extractor is torch.hub-fetched and does not need timm.
+# LICENSE: Apache-2.0 confirmed at https://github.com/huggingface/pytorch-image-models/blob/main/LICENSE
+timm = [
+    "timm>=1.0",
+]
+# OpenVINO inference runtime for edge / CPU-only deployments (Intel Iris Xe,
+# Arc, NPU, or plain Core CPUs). Optional because most dev workflows use the
+# torch backbone; install as ``pip install clscore[openvino]``.
+# LICENSE: Apache-2.0 confirmed at https://github.com/openvinotoolkit/openvino/blob/master/LICENSE
+openvino = [
+    "openvino>=2024.4",
+]
+# NNCF post-training INT8 quantization for OpenVINO IR export. Separate extra
+# so users consuming a pre-quantized IR skip the full quantization toolchain.
+# LICENSE: Apache-2.0 confirmed at https://github.com/openvinotoolkit/nncf/blob/develop/LICENSE
+openvino-int8 = [
+    "openvino>=2024.4",
+    "nncf>=2.10",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.4",
+    "mypy>=1.8",
+    "httpx>=0.27",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["clscore"]
